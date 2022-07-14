@@ -4,6 +4,7 @@ from .forms import RoomForm
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.db.models import Q
+from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
@@ -23,12 +24,13 @@ def loginPage(request):
         return redirect('home')
     
     if request.method=="POST":
-        username = request.POST.get('username')
+        username = request.POST.get('username').lower()
         password = request.POST.get('password')
         try:
             user = user.objects.get(username=username)
         except:
-            messages.error(request, 'User does not exist')
+            #messages.error(request, 'User does not exist')
+            pass
             
         user = authenticate(request, username=username, password=password)
         if user is not None:
@@ -46,8 +48,21 @@ def logoutUser(request):
 
 def registerPage(request):
     page = 'register'
+    form = UserCreationForm()
+    
+    if request.method =='POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.username = user.username.lower()
+            user.save()
+            login(request, user)
+            return redirect('home')
+        else:
+            messages.error(request, 'An error occurred during registration.')
+        
     #context = {'page':page}
-    return render(request, 'base/login_register.html')
+    return render(request, 'base/login_register.html',{'form':form})
 
 def home(request):
     q = request.GET.get('q') if request.GET.get('q') else ''
